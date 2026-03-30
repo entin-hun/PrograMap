@@ -7,7 +7,7 @@ import ssl
 import urllib.request
 import urllib.parse
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Request
@@ -38,6 +38,7 @@ from db import (
     upsert_wix_connection,
 )
 from wix_client import build_oauth_url, exchange_code_for_tokens, fetch_availability, fetch_services
+from salonic_client import search_locations as salonic_search_locations
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -97,6 +98,44 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 HERE_API_KEY = os.getenv("HERE_API_KEY", "")
 AMADEUS_API_KEY = os.getenv("AMADEUS_API_KEY", "")
 AMADEUS_API_SECRET = os.getenv("AMADEUS_API_SECRET", "")
+SALONIC_ENABLED = os.getenv("SALONIC_ENABLED", "true").lower() == "true"
+SALONIC_API_BASE = os.getenv("SALONIC_API_BASE", "https://salonic.hu")
+SALONIC_DEFAULT_ADDRESS = os.getenv("SALONIC_DEFAULT_ADDRESS", "Budapest")
+SALONIC_RADIUS_KM = float(os.getenv("SALONIC_RADIUS_KM", "20"))
+SALONIC_MAX_LOCATIONS = int(os.getenv("SALONIC_MAX_LOCATIONS", "25"))
+SALONIC_PROVIDER_OFFSET = 1_000_000_000
+# Service categories: Arckezelés (1), Hajvágás (4), Szakáll (8), Manikűr (12), Pedikűr (13), Masszázs (20), Gyantázás (21)
+_SALONIC_SERVICE_CATEGORIES_DEFAULT = [1, 4, 8, 12, 13, 20, 21]
+# Location types: Szépségszalon (1), Fodrászat (2), Barbershop (3), Szalonok (4), Manikűr/Pedikűr (6), Szépségszalon (8), 
+# Masszázsszalon (10), Gyanta szalon (11), Alakformáló stúdió (12)
+_SALONIC_LOCATION_TYPES_DEFAULT = [10, 11, 12, 8, 6, 1, 2, 3, 4]
+
+
+def _parse_int_env(name: str) -> Optional[int]:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except Exception:
+        logger.warning("Invalid integer for %s: %s", name, raw)
+        return None
+
+
+def _parse_int_list_env(name: str, default: list) -> list:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return [int(x.strip()) for x in raw.split(",") if x.strip()]
+    except Exception:
+        logger.warning("Invalid integer list for %s: %s", name, raw)
+        return default
+
+
+SALONIC_LOCATION_TYPE_IDS = _parse_int_list_env("SALONIC_LOCATION_TYPE_IDS", _SALONIC_LOCATION_TYPES_DEFAULT)
+SALONIC_SERVICE_CATEGORY_IDS = _parse_int_list_env("SALONIC_SERVICE_CATEGORY_IDS", _SALONIC_SERVICE_CATEGORIES_DEFAULT)
+SALONIC_SERVICE_TYPE_ID = _parse_int_env("SALONIC_SERVICE_TYPE_ID")
 
 FORAGING_GRID_METERS = 500
 FORAGING_ZOOM_MIN = 13
@@ -268,6 +307,50 @@ def _provider_maps_url(lat: Optional[float], lng: Optional[float], label: str) -
     if lat is not None and lng is not None:
         return f"https://www.google.com/maps/search/?api=1&query={lat},{lng}"
     return f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(label)}"
+
+
+def _salonic_provider_id(location_id: int) -> int:
+    return -(SALONIC_PROVIDER_OFFSET + int(location_id))
+
+
+def _is_salonic_provider_id(provider_id: int) -> bool:
+    return provider_id <= -SALONIC_PROVIDER_OFFSET
+
+
+def _salonic_locations_for_services(keyword: str = "") -> list[dict]:
+    if not SALONIC_ENABLED:
+        return []
+    try:
+        results = []
+        # Try each location type, accumulate unique results
+        for location_type_id in SALONIC_LOCATION_TYPE_IDS:
+            try:
+                locations = salonic_search_locations(
+                    SALONIC_API_BASE,
+                    location_type_id=location_type_id,
+                    service_category_id=None,  # Let API return all service categories for this location type
+                    service_type_id=SALONIC_SERVICE_TYPE_ID,
+                    address=SALONIC_DEFAULT_ADDRESS,
+                    keyword=keyword or None,
+                    radius_km=SALONIC_RADIUS_KM,
+                    timeout=20,
+                )
+                results.extend(locations)
+            except Exception as exc:
+                logger.debug("Salonic location_type_id=%d search failed: %s", location_type_id, exc)
+                continue
+        # Remove duplicates by location_id, preserving order
+        seen = set()
+        unique_results = []
+        for loc in results:
+            loc_id = loc.get('location_id')
+            if loc_id not in seen:
+                seen.add(loc_id)
+                unique_results.append(loc)
+        return unique_results[: max(1, SALONIC_MAX_LOCATIONS)]
+    except Exception as exc:
+        logger.warning("Salonic services fetch failed: %s", exc)
+        return []
 
 
 def _http_get_json(url: str) -> dict:
@@ -1460,6 +1543,50 @@ def services_catalog():
                 }
             )
 
+    # Public Salonic catalog integration (no auth required).
+    for location in _salonic_locations_for_services():
+        provider_id = _salonic_provider_id(location["location_id"])
+        provider_name = location.get("place_name") or "Salonic partner"
+        provider_label = f"{provider_name} (Salonic)"
+        booking_url = location.get("booking_url") or "https://salonic.hu"
+        services = location.get("services") or []
+
+        # Salonic may return only a preview of first services; keep a fallback row.
+        if not services:
+            services_payload.append(
+                {
+                    "id": f"{provider_id}:salonic-general",
+                    "service_id": "salonic-general",
+                    "provider_id": provider_id,
+                    "provider_email": "salonic@public-search",
+                    "provider_name": provider_label,
+                    "name": "Salonic booking",
+                    "price": {"currency": "HUF", "amount": 0.0},
+                    "duration_min": 60,
+                    "booking_url": booking_url,
+                }
+            )
+            continue
+
+        for svc in services:
+            category_id = svc.get("service_category_id")
+            type_id = svc.get("service_type_id")
+            service_id = f"salonic-{category_id or 'cat'}-{type_id or 'type'}"
+            service_name = svc.get("service_type_name") or svc.get("service_category_name") or "Salonic service"
+            services_payload.append(
+                {
+                    "id": f"{provider_id}:{service_id}",
+                    "service_id": service_id,
+                    "provider_id": provider_id,
+                    "provider_email": "salonic@public-search",
+                    "provider_name": provider_label,
+                    "name": service_name,
+                    "price": {"currency": "HUF", "amount": 0.0},
+                    "duration_min": 60,
+                    "booking_url": booking_url,
+                }
+            )
+
     return {"services": services_payload}
 
 
@@ -1541,6 +1668,58 @@ def availability_search(payload: AvailabilitySearchRequest):
                 "slots": normalized_slots,
             }
         )
+
+    # Salonic: public directory does not provide slot API, so we return booking-ready placeholders.
+    salonic_provider_ids = [provider_id for provider_id in by_provider.keys() if _is_salonic_provider_id(provider_id)]
+    if salonic_provider_ids:
+        location_map = {
+            _salonic_provider_id(item["location_id"]): item
+            for item in _salonic_locations_for_services()
+        }
+        for provider_id in salonic_provider_ids:
+            location = location_map.get(provider_id)
+            if not location:
+                continue
+
+            selected_service_ids = by_provider.get(provider_id, [])
+            if not selected_service_ids:
+                selected_service_ids = ["salonic-general"]
+
+            start = requested_time or datetime.now(timezone.utc).isoformat()
+            end = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+            booking_url = location.get("booking_url") or "https://salonic.hu"
+
+            lat = _safe_float(location.get("lat"))
+            lng = _safe_float(location.get("lng"))
+            label = location.get("place_name") or "Salonic partner"
+            maps_query = location.get("address") or label
+
+            slots = []
+            for service_id in selected_service_ids:
+                slots.append(
+                    {
+                        "id": f"{provider_id}:{service_id}",
+                        "service_id": service_id,
+                        "start": start,
+                        "end": end,
+                        "price": {"currency": "HUF", "amount": 0.0},
+                        "booking_url": booking_url,
+                    }
+                )
+
+            results.append(
+                {
+                    "provider_id": provider_id,
+                    "provider_name": f"{label} (Salonic)",
+                    "provider_email": "salonic@public-search",
+                    "lat": lat,
+                    "lng": lng,
+                    "maps_url": _provider_maps_url(lat, lng, maps_query),
+                    "booking_url": booking_url,
+                    "min_price": {"currency": "HUF", "amount": 0.0},
+                    "slots": slots,
+                }
+            )
 
     return {
         "requested_time": requested_time,

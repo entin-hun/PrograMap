@@ -12,7 +12,7 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code (build context = project root)
-COPY backend/main.py backend/db.py backend/wix_client.py ./
+COPY backend/main.py backend/db.py backend/wix_client.py backend/salonic_client.py ./
 COPY species_profiles.json .
 
 EXPOSE 8223
