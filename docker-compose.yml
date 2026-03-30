@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8269:8223"
+    env_file:
+      - ./backend/.env
+    volumes:
+      # Mount service account credentials (not tracked in git)
+      - ./backend/key.json:/app/key.json:ro
+      - ./backend/cop.json:/app/cop.json:ro
+      # Persist SQLite database
+      - trail_planner_db:/app/data
+    environment:
+      - APP_DB_PATH=/app/data/trail_planner.db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8084:80"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+volumes:
+  trail_planner_db:

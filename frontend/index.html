@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MaPlan</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="container">
+    <div id="sidebar" class="sidebar-expanded">
+      <div id="drag-handle" class="drag-handle"></div>
+      <h2>Hiking Planner</h2>
+      
+      <div id="foraging-strip" class="foraging-strip hidden"></div>
+      
+      <div class="control-group">
+        <label for="city-search">Jump to location:</label>
+        <input type="text" id="city-search" placeholder="Search a city or place..." />
+      </div>
+
+
+      <div class="control-group toggles-group">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <label class="toggles-title">Display on map:</label>
+          <button id="help-toggle" style="background: none; border: none; cursor: pointer; font-size: 18px; padding: 5px 10px; color: #666;" title="Show/hide help">ℹ️</button>
+        </div>
+        <div id="help-panel" class="help-panel hidden">
+          <div class="help-item">
+            <strong>📸 Scenic</strong>
+            <p><strong>Data sources:</strong> Google Places API (location, name, rating, photo URLs) for highly-rated POIs ≥4.5 stars with ≥20 reviews; OpenStreetMap (manual hiking/scenic landmarks, viewpoints, natural features).</p>
+          </div>
+          <div class="help-item">
+            <strong>🥾 Trails</strong>
+            <p><strong>Data source:</strong> OpenStreetMap (hiking routes, trekking paths with difficulty=sac_scale ratings and surfaces).</p>
+          </div>
+          <div class="help-item">
+            <strong>🗺️ Terrain</strong>
+            <p><strong>Data sources:</strong> USGS elevation data and Google Maps (elevation in meters, used to generate topographic contours and hillshading).</p>
+          </div>
+          <div class="help-item">
+            <strong>⛰️ Steep</strong>
+            <p><strong>Data source:</strong> Slope analysis (>15° inclination) calculated from USGS elevation data for alpine/technical route awareness.</p>
+          </div>
+          <div class="help-item">
+            <strong>🚐 Parks</strong>
+            <p><strong>Data source:</strong> OpenStreetMap (camping_site and caravan_site amenities with facilities and accessibility info).</p>
+          </div>
+          <div class="help-item">
+            <strong>🪙 Tolls</strong>
+            <p><strong>Data source:</strong> OpenStreetMap (road segments tagged toll=yes with toll operator names and fee info where available).</p>
+          </div>
+          <div class="help-item">
+            <strong>💧 Water</strong>
+            <p><strong>Data source:</strong> Overpass API querying OpenStreetMap (amenity=drinking_water and water_point locations with wheelchair access info).</p>
+          </div>
+          <div class="help-item">
+            <strong>🎟️ Activities</strong>
+            <p><strong>Data source:</strong> Amadeus Activities API (activity discovery and pricing in current map area).</p>
+          </div>
+          <div class="help-item">
+            <strong>🍄 Foraging</strong>
+            <p><strong>Data sources:</strong> Custom edible mushroom database (32 species profiles); Open-Meteo (7-day weather: temperature, rainfall); SoilGrids (soil pH); EPFD/Earth Engine CORINE (forest type and vegetation class). Probability score (0-100%) filters species by temperature tolerance, rainfall, soil pH, tree habitat, and land cover type. Only non-toxic species shown.</p>
+          </div>
+          <div class="help-item" id="help-fuel" style="display: none;">
+            <strong>⛽ Gas</strong>
+            <p><strong>Data source:</strong> HERE Routing API (fuel station POIs with brand names and fuel types; available in selected European countries only).</p>
+          </div>
+        </div>
+        <div class="toggle-container">
+          <label title="Scenic Spots"><input type="checkbox" id="toggle-scenic" checked> 📸 <span class="toggle-text">Scenic</span><span class="loading-spinner" id="loading-scenic" style="display:none;"> ⏳</span></label>
+          <label title="Hiking Trails"><input type="checkbox" id="toggle-trails"> 🥾 <span class="toggle-text">Trails</span></label>
+          <label title="Terrain"><input type="checkbox" id="toggle-terrain"> 🗺️ <span class="toggle-text">Terrain</span></label>
+          <label title="Steep Areas"><input type="checkbox" id="toggle-steepness"> ⛰️ <span class="toggle-text">Steep</span></label>
+          <label title="Night Parks"><input type="checkbox" id="toggle-parks"> 🚐 <span class="toggle-text">Parks</span><span class="loading-spinner" id="loading-parks" style="display:none;"> ⏳</span></label>
+          <label title="Tolls"><input type="checkbox" id="toggle-tolls"> 🪙 <span class="toggle-text">Tolls</span><span class="loading-spinner" id="loading-tolls" style="display:none;"> ⏳</span></label>
+          <label title="Drinking Water"><input type="checkbox" id="toggle-water"> 💧 <span class="toggle-text">Water</span><span class="loading-spinner" id="loading-water" style="display:none;"> ⏳</span></label>
+          <label title="Activities"><input type="checkbox" id="toggle-activities"> 🎟️ <span class="toggle-text">Activities</span><span class="loading-spinner" id="loading-activities" style="display:none;"> ⏳</span></label>
+          <label title="Mushroom Foraging"><input type="checkbox" id="toggle-foraging"> 🍄 <span class="toggle-text">Foraging</span><span class="loading-spinner" id="loading-foraging" style="display:none;"> ⏳</span></label>
+          <label title="Gas Stations" id="label-fuel" style="display: none;"><input type="checkbox" id="toggle-fuel"> ⛽ <span class="toggle-text">Gas</span><span class="loading-spinner" id="loading-fuel" style="display:none;"> ⏳</span></label>
+          <label title="Service Booking"><input type="checkbox" id="toggle-services"> 🕒 <span class="toggle-text">Services</span></label>
+        </div>
+      </div>
+
+      
+      <div class="control-group" id="services-panel" style="display: none;">
+        <label>Services & availability:</label>
+        <div id="services-checklist" class="services-checklist">Loading services…</div>
+        <label for="service-time">Filter by time (optional):</label>
+        <input type="datetime-local" id="service-time" />
+        <button id="clear-service-time" class="provider-btn provider-btn-secondary">Use soonest instead</button>
+        <div id="services-status" class="status-text"></div>
+      </div>
+
+      <div class="control-group" id="activities-filters" style="display: none;">
+        <label>Activities filters:</label>
+        <label>Price max:</label>
+        <div class="activities-price-row">
+          <input type="range" id="activities-price-max-range" min="0" max="1000" step="1" value="1000" />
+        </div>
+        <div class="activities-price-values">
+          <span id="activities-price-min-label">0 EUR</span>
+          <span id="activities-price-max-label">Up to 1000 EUR</span>
+        </div>
+        <div style="display: none;">
+          <input type="number" id="activities-price-min" min="0" step="1" placeholder="e.g. 20" />
+          <input type="number" id="activities-price-max" min="0" step="1" placeholder="e.g. 200" />
+        </div>
+
+        <div id="activities-date-filters" style="display: none;">
+          <label for="activities-date-from">Date from:</label>
+          <input type="date" id="activities-date-from" />
+          <label for="activities-date-to">Date to:</label>
+          <input type="date" id="activities-date-to" />
+        </div>
+
+        <button id="activities-reset-filters" class="provider-btn provider-btn-secondary">Reset filters</button>
+
+        <div id="activities-status" class="status-text"></div>
+      </div>
+
+
+      <div class="control-group" id="provider-panel" style="display: none;">
+        <label>Provider connection:</label>
+        <input type="email" id="provider-email" placeholder="provider@email.com" />
+        <button id="provider-request-link" class="provider-btn">Request magic link</button>
+        <input type="text" id="provider-magic-token" placeholder="Paste magic token" />
+        <button id="provider-verify-link" class="provider-btn">Verify login</button>
+        <div class="provider-actions">
+          <button id="provider-connect-wix" class="provider-btn">Connect Wix</button>
+          <button id="provider-logout" class="provider-btn provider-btn-secondary">Logout</button>
+        </div>
+        <div id="provider-status" class="status-text">Not logged in</div>
+      </div>
+
+
+      <div id="hiking-features" style="display: none;">
+      <h3>Favorites (<span id="fav-count">0</span>)</h3>
+      <div id="favorites-container"></div>
+      
+      <div id="route-info" class="hidden"></div>
+
+
+      <div id="sac-filters" style="display: none;">
+        <div class="control-group">
+          <label for="min-sac">Min Difficulty (SAC):</label>
+          <select id="min-sac">
+            <option value="T1" selected>T1</option>
+            <option value="T2">T2</option>
+            <option value="T3">T3</option>
+            <option value="T4">T4</option>
+            <option value="T5">T5</option>
+            <option value="T6">T6</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="max-sac">Max Difficulty (SAC):</label>
+          <select id="max-sac">
+            <option value="T1">T1</option>
+            <option value="T2" selected>T2</option>
+            <option value="T3">T3</option>
+            <option value="T4">T4</option>
+            <option value="T5">T5</option>
+            <option value="T6">T6</option>
+          </select>
+        </div>
+      </div>
+      </div>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <!-- Photo Gallery Modal -->
+  <div id="gallery-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h2 id="modal-title">Place Name</h2>
+      <div id="modal-photos" class="gallery"></div>
+      <div class="modal-actions">
+        <button id="favorite-btn" class="fav-btn">★ Favorite</button>
+        <button id="gmaps-btn" class="nav-btn">🗺️ Open in Google Maps</button>
+        <button id="waze-btn" class="nav-btn waze-btn" style="display: none;">🚗 Open in Waze</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Note: Replace YOUR_GOOGLE_MAPS_API_KEY with an actual API key -->
+  <!-- We need the Maps, Places APIs -->
+  <!-- e.g. https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&libraries=places&callback=initMap -->
+  <script src="app.js"></script>
+</body>
+</html>

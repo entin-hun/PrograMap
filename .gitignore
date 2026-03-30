@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Environment & secrets
+.env
+backend/.env
+backend/key.json
+backend/cop.json
+backend/gen-lang-*.json
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+uvicorn.log
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Node
+node_modules/
+
+# Misc one-off scripts
+fix_*.js
+fix_*.py
+patch_*.js
+fetch_capitals_diesel.py
+laska.json

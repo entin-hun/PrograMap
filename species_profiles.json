@@ -1,0 +1,839 @@
+{
+  "species_profiles": [
+    {
+      "species_id": "agaricus_arvensis",
+      "name_hu": "Erdőszéli csiperke",
+      "name_la": "Agaricus arvensis",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Erd%C5%91sz%C3%A9li_csiperke",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/0/0a/A._arvensis_showing_cogwheel.jpg",
+      "color": "#1F77B4",
+      "preferred_tree_genera": [
+        "Quercus",
+        "Fagus",
+        "Carpinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 11,
+        "temp_max": 22,
+        "rain_7d_min": 10,
+        "soil_ph_min": 5.8,
+        "soil_ph_max": 7.5,
+        "land_cover": [
+          "deciduous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "medium",
+      "lookalikes": []
+    },
+    {
+      "species_id": "armillaria_lutea",
+      "name_hu": "Gumós tuskógomba",
+      "name_la": "Armillaria lutea",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Gum%C3%B3s_tusk%C3%B3gomba",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Armillaria.gallica.003.jpg/330px-Armillaria.gallica.003.jpg",
+      "color": "#2CA02C",
+      "preferred_tree_genera": [
+        "Quercus",
+        "Fagus",
+        "Pinus",
+        "Picea"
+      ],
+      "optimal_conditions": {
+        "temp_min": 11,
+        "temp_max": 16,
+        "rain_7d_min": 10,
+        "soil_ph_min": 5.8,
+        "soil_ph_max": 7.5,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "chroogomphus_rutilus",
+      "name_hu": "Vöröses nyálkásgomba",
+      "name_la": "Chroogomphus rutilus",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/V%C3%B6r%C3%B6ses_ny%C3%A1lk%C3%A1sgomba",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Chroogomphus_rutilus_Bryonia_orig.jpg",
+      "color": "#637939",
+      "preferred_tree_genera": [
+        "Pinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 11,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "craterellus_tubaeformis",
+      "name_hu": "Tölcséres rókagomba",
+      "name_la": "Craterellus tubaeformis",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/T%C3%B6lcs%C3%A9res_r%C3%B3kagomba",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Cantharellus_tubaeformis_G28.JPG",
+      "color": "#1F77B4",
+      "preferred_tree_genera": [
+        "Picea",
+        "Fagus",
+        "Quercus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 6,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "hydnum_repandum",
+      "name_hu": "Sárga gereben",
+      "name_la": "Hydnum repandum",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/S%C3%A1rga_gereben",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Hedgehog_fungi2.jpg",
+      "color": "#7B4173",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Quercus",
+        "Picea"
+      ],
+      "optimal_conditions": {
+        "temp_min": 11,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "hydnum_rufescens",
+      "name_hu": "Sárgásvörös gereben",
+      "name_la": "Hydnum rufescens",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/S%C3%A1rg%C3%A1sv%C3%B6r%C3%B6s_gereben",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/6/65/Hydnum_rufescens_2.jpg",
+      "color": "#31A354",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Quercus",
+        "Picea"
+      ],
+      "optimal_conditions": {
+        "temp_min": 11,
+        "temp_max": 22,
+        "rain_7d_min": 10,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "imleria_badia",
+      "name_hu": "Barna tinóru",
+      "name_la": "Imleria badia",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Barna_tin%C3%B3ru",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/2/2e/Boletus_badius_JPG1.jpg",
+      "color": "#7F7F7F",
+      "preferred_tree_genera": [
+        "Picea",
+        "Pinus",
+        "Fagus",
+        "Quercus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 7,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "lactarius_deterrimus",
+      "name_hu": "Lucfenyvesi rizike",
+      "name_la": "Lactarius deterrimus",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Lucfenyvesi_rizike",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Lactarius-deterrimus-Fichten-Reizker.jpg",
+      "color": "#8C564B",
+      "preferred_tree_genera": [
+        "Picea"
+      ],
+      "optimal_conditions": {
+        "temp_min": 11,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "lactarius_sanguifluus",
+      "name_hu": "Vöröstejű rizike",
+      "name_la": "Lactarius sanguifluus",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/V%C3%B6r%C3%B6stej%C5%B1_rizike",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Lactarius_sanguifluus_64507.jpg",
+      "color": "#17BECF",
+      "preferred_tree_genera": [
+        "Pinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 5,
+        "temp_max": 16,
+        "rain_7d_min": 8,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "lactarius_semisanguifluus",
+      "name_hu": "Vörösödőtejű rizike",
+      "name_la": "Lactarius semisanguifluus",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/V%C3%B6r%C3%B6s%C3%B6d%C5%91tej%C5%B1_rizike",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/a/af/Lactarius_semisanguifluus1597.jpg",
+      "color": "#E6550D",
+      "preferred_tree_genera": [
+        "Pinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 6,
+        "temp_max": 22,
+        "rain_7d_min": 10,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "lactifluus_glaucescens",
+      "name_hu": "Zöldülőtejű keserűgomba",
+      "name_la": "Lactifluus glaucescens",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Z%C3%B6ld%C3%BCl%C5%91tej%C5%B1_keser%C5%B1gomba",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Lactarius_glaucescens_157833.jpg/330px-Lactarius_glaucescens_157833.jpg",
+      "color": "#E6550D",
+      "preferred_tree_genera": [
+        "Quercus",
+        "Fagus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 16,
+        "temp_max": 22,
+        "rain_7d_min": 11,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "laetiporus_sulphureus",
+      "name_hu": "Sárga gévagomba",
+      "name_la": "Laetiporus sulphureus",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/S%C3%A1rga_g%C3%A9vagomba",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Laetiporus_sulphureus_big.jpg",
+      "color": "#D62728",
+      "preferred_tree_genera": [
+        "Quercus",
+        "Salix",
+        "Robinia"
+      ],
+      "optimal_conditions": {
+        "temp_min": 12,
+        "temp_max": 20,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "leccinum_aurantiacum",
+      "name_hu": "Tölgyfa-érdestinóru",
+      "name_la": "Leccinum aurantiacum",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/V%C3%B6r%C3%B6s_%C3%A9rdestin%C3%B3ru",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/d/db/Leccinum_aurantiacum_G3_(1).jpg",
+      "color": "#BCBD22",
+      "preferred_tree_genera": [
+        "Quercus",
+        "Populus",
+        "Betula"
+      ],
+      "optimal_conditions": {
+        "temp_min": 11,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "lepista_nuda",
+      "name_hu": "Lila pereszke",
+      "name_la": "Lepista nuda",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Lila_pereszke",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Lepista_nuda.jpg",
+      "color": "#3182BD",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Quercus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 5,
+        "temp_max": 17,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "fields"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "medium",
+      "lookalikes": []
+    },
+    {
+      "species_id": "lepista_personata",
+      "name_hu": "Lilatönkű pereszke",
+      "name_la": "Lepista personata",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Lilat%C3%B6nk%C5%B1_pereszke",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/9/98/2009-04-22_Lepista_saeva_(Fr.)_P.D._Orton_41666.jpg",
+      "color": "#E377C2",
+      "preferred_tree_genera": [],
+      "optimal_conditions": {
+        "temp_min": 2,
+        "temp_max": 12,
+        "rain_7d_min": 10,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "fields",
+          "mixed"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "medium",
+      "lookalikes": []
+    },
+    {
+      "species_id": "macrolepiota_procera",
+      "name_hu": "Nagy őzlábgomba",
+      "name_la": "Macrolepiota procera",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Nagy_%C5%91zl%C3%A1bgomba",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Macrolepiota-procera.jpg",
+      "color": "#7F7F7F",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Quercus",
+        "Picea"
+      ],
+      "optimal_conditions": {
+        "temp_min": 6,
+        "temp_max": 20,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "russula_vesca",
+      "name_hu": "Ráncos galambgomba",
+      "name_la": "Russula vesca",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/R%C3%A1ncos_galambgomba",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Bare-toothed_Russula_(Russula_vesca)_in_Tychy_(Paprocany),_Silesian_Voivodeship,_Poland,_August_2022.jpg",
+      "color": "#D62728",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Quercus",
+        "Picea"
+      ],
+      "optimal_conditions": {
+        "temp_min": 16,
+        "temp_max": 22,
+        "rain_7d_min": 10,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "suillus_collinitus",
+      "name_hu": "Rózsástövű fenyőtinóru",
+      "name_la": "Suillus collinitus",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/R%C3%B3zs%C3%A1st%C3%B6v%C5%B1_feny%C5%91tin%C3%B3ru",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Suillus_collinitus.JPG",
+      "color": "#393B79",
+      "preferred_tree_genera": [
+        "Pinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 6,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "suillus_grevillei",
+      "name_hu": "Sárga gyűrűstinóru",
+      "name_la": "Suillus grevillei",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/S%C3%A1rga_gy%C5%B1r%C5%B1stin%C3%B3ru",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Suillus_grevillei.jpg",
+      "color": "#E377C2",
+      "preferred_tree_genera": [
+        "Larix"
+      ],
+      "optimal_conditions": {
+        "temp_min": 12,
+        "temp_max": 22,
+        "rain_7d_min": 10,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "coniferous"
+        ]
+      },
+      "frequency": "abundant",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "armillaria_mellea",
+      "name_hu": "Gyűrűs tuskógomba",
+      "name_la": "Armillaria mellea",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Gy%C5%B1r%C5%B1s_tusk%C3%B3gomba",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Armillaria_mellea.jpg",
+      "color": "#9467BD",
+      "preferred_tree_genera": [
+        "Quercus",
+        "Fagus",
+        "Pinus",
+        "Picea",
+        "Populus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 6,
+        "temp_max": 12,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.8,
+        "soil_ph_max": 7.5,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "boletus_reticulatus",
+      "name_hu": "Nyári vargánya",
+      "name_la": "Boletus reticulatus",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Ny%C3%A1ri_varg%C3%A1nya",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Boletus_reticulatus.jpg",
+      "color": "#17BECF",
+      "preferred_tree_genera": [
+        "Quercus",
+        "Fagus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 17,
+        "temp_max": 22,
+        "rain_7d_min": 10,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "choiromyces_meandriformis",
+      "name_hu": "Fehér szarvasgomba",
+      "name_la": "Choiromyces meandriformis",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Feh%C3%A9r_szarvasgomba",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/4/45/Maeandertrueffel.jpg",
+      "color": "#3182BD",
+      "preferred_tree_genera": [
+        "Quercus",
+        "Fagus",
+        "Carpinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 17,
+        "temp_max": 22,
+        "rain_7d_min": 13,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "clitocybe_nebularis",
+      "name_hu": "Szürke tölcsérgomba",
+      "name_la": "Clitocybe nebularis",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Sz%C3%BCrke_t%C3%B6lcs%C3%A9rgomba",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Clitocybe_nebularis.jpg",
+      "color": "#FF7F0E",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Quercus",
+        "Picea"
+      ],
+      "optimal_conditions": {
+        "temp_min": 6,
+        "temp_max": 12,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "medium",
+      "lookalikes": []
+    },
+    {
+      "species_id": "craterellus_cornucopioides",
+      "name_hu": "Sötét trombitagomba",
+      "name_la": "Craterellus cornucopioides",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/S%C3%B6t%C3%A9t_trombitagomba",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Craterellus_cornucopioides.jpg",
+      "color": "#843C39",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Quercus",
+        "Picea"
+      ],
+      "optimal_conditions": {
+        "temp_min": 6,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "macrolepiota_mastoidea",
+      "name_hu": "Karcsú őzlábgomba",
+      "name_la": "Macrolepiota mastoidea",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Karcs%C3%BA_%C5%91zl%C3%A1bgomba",
+      "picture_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Zitzen-Riesenschirmling_Macrolepiota_mastoidea.JPG/330px-Zitzen-Riesenschirmling_Macrolepiota_mastoidea.JPG",
+      "color": "#8C6D31",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Quercus",
+        "Picea"
+      ],
+      "optimal_conditions": {
+        "temp_min": 5,
+        "temp_max": 17,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "marasmius_oreades",
+      "name_hu": "Mezei szegfűgomba",
+      "name_la": "Marasmius oreades",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Mezei_szegf%C5%B1gomba",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Marasmius_oreades.jpg",
+      "color": "#756BB1",
+      "preferred_tree_genera": [],
+      "optimal_conditions": {
+        "temp_min": 5,
+        "temp_max": 18,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "fields",
+          "mixed"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "morchella_semilibera",
+      "name_hu": "Fattyú kucsmagomba",
+      "name_la": "Morchella semilibera",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Fatty%C3%BA_kucsmagomba",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Morchella_semilibera.jpg",
+      "color": "#636363",
+      "preferred_tree_genera": [
+        "Fraxinus",
+        "Ulmus",
+        "Populus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 11,
+        "temp_max": 15,
+        "rain_7d_min": 10,
+        "soil_ph_min": 5.8,
+        "soil_ph_max": 7.5,
+        "land_cover": [
+          "deciduous"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "suillus_granulatus",
+      "name_hu": "Szemcsésnyelű fenyőtinóru",
+      "name_la": "Suillus granulatus",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Szemcs%C3%A9snyel%C5%B1_feny%C5%91tin%C3%B3ru",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Suillus_granulatus.jpg",
+      "color": "#8C6D31",
+      "preferred_tree_genera": [
+        "Pinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 11,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 4.6,
+        "soil_ph_max": 6.2,
+        "land_cover": [
+          "coniferous"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "verpa_bohemica",
+      "name_hu": "Cseh kucsmagomba",
+      "name_la": "Verpa bohemica",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Cseh_kucsmagomba",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Verpa_bohemica.jpg",
+      "color": "#BCBD22",
+      "preferred_tree_genera": [
+        "Populus",
+        "Salix",
+        "Fraxinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 7,
+        "temp_max": 12,
+        "rain_7d_min": 8,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.0,
+        "land_cover": [
+          "deciduous",
+          "coniferous"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "auricularia_auricula_judae",
+      "name_hu": "Júdásfülgomba",
+      "name_la": "Auricularia auricula-judae",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/J%C3%BAd%C3%A1sf%C3%BCl",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Auricularia_auricula-judae.jpg",
+      "color": "#8C564B",
+      "preferred_tree_genera": [
+        "Sambucus",
+        "Fraxinus",
+        "Fagus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 2,
+        "temp_max": 22,
+        "rain_7d_min": 10,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.5,
+        "land_cover": [
+          "deciduous",
+          "mixed"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "pleurotus_ostreatus",
+      "name_hu": "Késői laskagomba",
+      "name_la": "Pleurotus ostreatus",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/K%C3%A9s%C5%91i_laskagomba",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Oyster_mushroom.jpg",
+      "color": "#636363",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Populus",
+        "Salix",
+        "Fraxinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 0,
+        "temp_max": 18,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.5,
+        "land_cover": [
+          "deciduous",
+          "mixed"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    },
+    {
+      "species_id": "pleurotus_pulmonarius",
+      "name_hu": "Nyári laskagomba",
+      "name_la": "Pleurotus pulmonarius",
+      "wikipedia_url": "https://hu.wikipedia.org/wiki/Ny%C3%A1ri_laskagomba",
+      "picture_url": "https://en.wikipedia.org/wiki/Special:FilePath/Pleurotus_pulmonarius.jpg",
+      "color": "#1F77B4",
+      "preferred_tree_genera": [
+        "Fagus",
+        "Populus",
+        "Quercus",
+        "Fraxinus"
+      ],
+      "optimal_conditions": {
+        "temp_min": 12,
+        "temp_max": 22,
+        "rain_7d_min": 9,
+        "soil_ph_min": 5.0,
+        "soil_ph_max": 7.5,
+        "land_cover": [
+          "deciduous",
+          "mixed"
+        ]
+      },
+      "frequency": "common",
+      "toxicity_risk": "low",
+      "lookalikes": []
+    }
+  ]
+}

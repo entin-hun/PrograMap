@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+openrouteservice
+overpy
+pydantic
+requests
+python-dotenv
+cryptography
