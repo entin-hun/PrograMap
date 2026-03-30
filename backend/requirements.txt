@@ -6,3 +6,4 @@ pydantic
 requests
 python-dotenv
 cryptography
+earthengine-api

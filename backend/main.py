@@ -50,7 +50,7 @@ except Exception:
     ee = None
     EE_AVAILABLE = False
 
-load_dotenv(override=True)
+load_dotenv(override=False)
 
 app = FastAPI()
 
@@ -432,7 +432,16 @@ def get_epfd_forest_context(lat_round: float, lng_round: float) -> Optional[dict
 
 
 def _species_profiles_path() -> str:
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "species_profiles.json"))
+    base_dir = os.path.dirname(__file__)
+    candidates = [
+        os.path.abspath(os.path.join(base_dir, "..", "species_profiles.json")),
+        os.path.abspath(os.path.join(base_dir, "species_profiles.json")),
+        "/app/species_profiles.json",
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return candidates[0]
 
 
 @lru_cache(maxsize=1)

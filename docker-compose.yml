@@ -8,13 +8,15 @@ services:
     env_file:
       - ./backend/.env
     volumes:
+      - ${REMOTE_BACKEND_ATTACH_DIR:-./backend}/.env:/app/.env:ro
       # Mount service account credentials (not tracked in git)
-      - ./backend/key.json:/app/key.json:ro
-      - ./backend/cop.json:/app/cop.json:ro
+      - ${REMOTE_BACKEND_ATTACH_DIR:-./backend}/key.json:/app/key.json:ro
+      - ${REMOTE_BACKEND_ATTACH_DIR:-./backend}/cop.json:/app/cop.json:ro
       # Persist SQLite database
       - trail_planner_db:/app/data
     environment:
       - APP_DB_PATH=/app/data/trail_planner.db
+      - EE_PRIVATE_KEY_PATH=/app/key.json
     restart: unless-stopped
 
   frontend:
