@@ -317,6 +317,30 @@ def _is_salonic_provider_id(provider_id: int) -> bool:
     return provider_id <= -SALONIC_PROVIDER_OFFSET
 
 
+def _parse_iso_datetime(iso_str: str) -> Optional[datetime]:
+    """Parse ISO format datetime string safely."""
+    if not iso_str:
+        return None
+    try:
+        if iso_str.endswith('Z'):
+            return datetime.fromisoformat(iso_str.replace('Z', '+00:00'))
+        return datetime.fromisoformat(iso_str)
+    except Exception:
+        return None
+
+
+def _is_time_available(requested_time: Optional[str]) -> bool:
+    """Check if requested_time is in the future (allowing available slots)."""
+    if not requested_time:
+        return True  # No time specified, available for current/near future
+    requested_dt = _parse_iso_datetime(requested_time)
+    if not requested_dt:
+        return True  # Invalid format, assume available
+    now = datetime.now(timezone.utc)
+    # Allow if requested time is in the future or within last 2 hours (already booked)
+    return requested_dt >= (now - timedelta(hours=2))
+
+
 def _salonic_locations_for_services(keyword: str = "") -> list[dict]:
     if not SALONIC_ENABLED:
         return []
@@ -1670,56 +1694,69 @@ def availability_search(payload: AvailabilitySearchRequest):
         )
 
     # Salonic: public directory does not provide slot API, so we return booking-ready placeholders.
-    salonic_provider_ids = [provider_id for provider_id in by_provider.keys() if _is_salonic_provider_id(provider_id)]
-    if salonic_provider_ids:
-        location_map = {
-            _salonic_provider_id(item["location_id"]): item
-            for item in _salonic_locations_for_services()
-        }
-        for provider_id in salonic_provider_ids:
-            location = location_map.get(provider_id)
-            if not location:
-                continue
+    # Filter: only include Salonic providers if requested_time is available (not in past).
+    if _is_time_available(requested_time):
+        salonic_provider_ids = [provider_id for provider_id in by_provider.keys() if _is_salonic_provider_id(provider_id)]
+        if salonic_provider_ids:
+            location_map = {
+                _salonic_provider_id(item["location_id"]): item
+                for item in _salonic_locations_for_services()
+            }
+            for provider_id in salonic_provider_ids:
+                location = location_map.get(provider_id)
+                if not location:
+                    continue
 
-            selected_service_ids = by_provider.get(provider_id, [])
-            if not selected_service_ids:
-                selected_service_ids = ["salonic-general"]
+                selected_service_ids = by_provider.get(provider_id, [])
+                if not selected_service_ids:
+                    selected_service_ids = ["salonic-general"]
 
-            start = requested_time or datetime.now(timezone.utc).isoformat()
-            end = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
-            booking_url = location.get("booking_url") or "https://salonic.hu"
+                # Use requested_time or now + 1 hour for slot times
+                if requested_time:
+                    start = requested_time
+                    slot_dt = _parse_iso_datetime(requested_time)
+                    if slot_dt:
+                        end = (slot_dt + timedelta(hours=1)).isoformat()
+                    else:
+                        end = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+                else:
+                    now = datetime.now(timezone.utc)
+                    start = now.isoformat()
+                    end = (now + timedelta(hours=1)).isoformat()
+                
+                booking_url = location.get("booking_url") or "https://salonic.hu"
 
-            lat = _safe_float(location.get("lat"))
-            lng = _safe_float(location.get("lng"))
-            label = location.get("place_name") or "Salonic partner"
-            maps_query = location.get("address") or label
+                lat = _safe_float(location.get("lat"))
+                lng = _safe_float(location.get("lng"))
+                label = location.get("place_name") or "Salonic partner"
+                maps_query = location.get("address") or label
 
-            slots = []
-            for service_id in selected_service_ids:
-                slots.append(
+                slots = []
+                for service_id in selected_service_ids:
+                    slots.append(
+                        {
+                            "id": f"{provider_id}:{service_id}",
+                            "service_id": service_id,
+                            "start": start,
+                            "end": end,
+                            "price": {"currency": "HUF", "amount": 0.0},
+                            "booking_url": booking_url,
+                        }
+                    )
+
+                results.append(
                     {
-                        "id": f"{provider_id}:{service_id}",
-                        "service_id": service_id,
-                        "start": start,
-                        "end": end,
-                        "price": {"currency": "HUF", "amount": 0.0},
+                        "provider_id": provider_id,
+                        "provider_name": f"{label} (Salonic)",
+                        "provider_email": "salonic@public-search",
+                        "lat": lat,
+                        "lng": lng,
+                        "maps_url": _provider_maps_url(lat, lng, maps_query),
                         "booking_url": booking_url,
+                        "min_price": {"currency": "HUF", "amount": 0.0},
+                        "slots": slots,
                     }
                 )
-
-            results.append(
-                {
-                    "provider_id": provider_id,
-                    "provider_name": f"{label} (Salonic)",
-                    "provider_email": "salonic@public-search",
-                    "lat": lat,
-                    "lng": lng,
-                    "maps_url": _provider_maps_url(lat, lng, maps_query),
-                    "booking_url": booking_url,
-                    "min_price": {"currency": "HUF", "amount": 0.0},
-                    "slots": slots,
-                }
-            )
 
     return {
         "requested_time": requested_time,
