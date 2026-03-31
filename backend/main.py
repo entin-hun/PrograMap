@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import overpy
@@ -39,6 +39,11 @@ from db import (
 )
 from wix_client import build_oauth_url, exchange_code_for_tokens, fetch_availability, fetch_services
 from salonic_client import search_locations as salonic_search_locations
+from booked4us_client import (
+    get_auth_token as b4u_get_auth_token,
+    get_calendars as b4u_get_calendars,
+    get_free_intervals as b4u_get_free_intervals,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -57,7 +62,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?",
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|100\.\d+\.\d+\.\d+)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -104,6 +109,13 @@ SALONIC_DEFAULT_ADDRESS = os.getenv("SALONIC_DEFAULT_ADDRESS", "Budapest")
 SALONIC_RADIUS_KM = float(os.getenv("SALONIC_RADIUS_KM", "20"))
 SALONIC_MAX_LOCATIONS = int(os.getenv("SALONIC_MAX_LOCATIONS", "25"))
 SALONIC_PROVIDER_OFFSET = 1_000_000_000
+BOOKED4US_ENABLED = os.getenv("BOOKED4US_ENABLED", "false").lower() == "true"
+BOOKED4US_API_BASE = os.getenv("BOOKED4US_API_BASE", "https://demo.booked4.us/rest-v2")
+BOOKED4US_USERNAME = os.getenv("BOOKED4US_USERNAME", "")
+BOOKED4US_PASSWORD = os.getenv("BOOKED4US_PASSWORD", "")
+BOOKED4US_MAX_CALENDARS = int(os.getenv("BOOKED4US_MAX_CALENDARS", "20"))
+BOOKED4US_PROVIDER_OFFSET = 500_000_000
+_booked4us_token_cache: dict = {"token": None, "expires_at": None}
 # Service categories: Arckezelés (1), Hajvágás (4), Szakáll (8), Manikűr (12), Pedikűr (13), Masszázs (20), Gyantázás (21)
 _SALONIC_SERVICE_CATEGORIES_DEFAULT = [1, 4, 8, 12, 13, 20, 21]
 # Location types: Szépségszalon (1), Fodrászat (2), Barbershop (3), Szalonok (4), Manikűr/Pedikűr (6), Szépségszalon (8), 
@@ -374,6 +386,47 @@ def _salonic_locations_for_services(keyword: str = "") -> list[dict]:
         return unique_results[: max(1, SALONIC_MAX_LOCATIONS)]
     except Exception as exc:
         logger.warning("Salonic services fetch failed: %s", exc)
+        return []
+
+
+def _booked4us_provider_id(calendar_id: int) -> int:
+    return -(BOOKED4US_PROVIDER_OFFSET + int(calendar_id))
+
+
+def _is_booked4us_provider_id(provider_id: int) -> bool:
+    return -SALONIC_PROVIDER_OFFSET < provider_id <= -BOOKED4US_PROVIDER_OFFSET
+
+
+def _booked4us_calendar_id(provider_id: int) -> int:
+    return -(provider_id) - BOOKED4US_PROVIDER_OFFSET
+
+
+def _get_booked4us_token() -> Optional[str]:
+    """Return a cached OAuth2 token for Booked4Us, or None if no credentials set."""
+    if not BOOKED4US_USERNAME or not BOOKED4US_PASSWORD:
+        return None
+    now = datetime.now(timezone.utc)
+    token = _booked4us_token_cache.get("token")
+    expires_at = _booked4us_token_cache.get("expires_at")
+    if token and expires_at and now < expires_at:
+        return token
+    new_token = b4u_get_auth_token(BOOKED4US_API_BASE, BOOKED4US_USERNAME, BOOKED4US_PASSWORD)
+    if new_token:
+        _booked4us_token_cache["token"] = new_token
+        _booked4us_token_cache["expires_at"] = now + timedelta(hours=1)
+    return new_token
+
+
+def _booked4us_calendars() -> list[dict]:
+    """Return up to BOOKED4US_MAX_CALENDARS calendars from the Booked4Us instance."""
+    if not BOOKED4US_ENABLED:
+        return []
+    try:
+        token = _get_booked4us_token()
+        calendars = b4u_get_calendars(BOOKED4US_API_BASE, token=token)
+        return calendars[:BOOKED4US_MAX_CALENDARS]
+    except Exception as exc:
+        logger.warning("Booked4Us calendars fetch failed: %s", exc)
         return []
 
 
@@ -1305,6 +1358,20 @@ def get_foraging_probability(min_lat: float, min_lng: float, max_lat: float, max
         "message": "ok",
     }
 
+@app.get("/")
+def root(request: Request):
+    """Redirect browser hits on the backend port to the frontend."""
+    host = request.headers.get("host", "localhost")
+    scheme = request.headers.get("x-forwarded-proto", "http")
+    hostname = host.split(":")[0]
+    return RedirectResponse(url=f"{scheme}://{hostname}:8084/", status_code=302)
+
+
+@app.get("/favicon.ico")
+def favicon():
+    return Response(status_code=204)
+
+
 @app.get("/api/config")
 def get_config():
     return {
@@ -1611,6 +1678,29 @@ def services_catalog():
                 }
             )
 
+        # Booked4Us: each calendar becomes a provider with a generic "booking" service.
+        for calendar in _booked4us_calendars():
+            provider_id = _booked4us_provider_id(calendar["calendar_id"])
+            provider_name = f"{calendar['name']} (Booked4Us)"
+            booking_url = calendar.get("booking_url") or BOOKED4US_API_BASE
+            day_start = calendar.get("day_start") or "08:00:00"
+            day_end = calendar.get("day_end") or "18:00:00"
+            service_id = f"b4u-{calendar['calendar_id']}"
+            hours_desc = f"{day_start[:5]}–{day_end[:5]}"
+            services_payload.append(
+                {
+                    "id": f"{provider_id}:{service_id}",
+                    "service_id": service_id,
+                    "provider_id": provider_id,
+                    "provider_email": "booked4us@public-calendar",
+                    "provider_name": provider_name,
+                    "name": calendar.get("description") or f"Online booking ({hours_desc})",
+                    "price": {"currency": "HUF", "amount": 0.0},
+                    "duration_min": 60,
+                    "booking_url": booking_url,
+                }
+            )
+
     return {"services": services_payload}
 
 
@@ -1758,6 +1848,78 @@ def availability_search(payload: AvailabilitySearchRequest):
                     }
                 )
 
+        # Booked4Us: query real free slots from the calendar API.
+        if BOOKED4US_ENABLED and _is_time_available(requested_time):
+            booked4us_provider_ids = [
+                pid for pid in by_provider.keys() if _is_booked4us_provider_id(pid)
+            ]
+            if booked4us_provider_ids:
+                token = _get_booked4us_token()
+                if requested_time:
+                    req_dt = _parse_iso_datetime(requested_time)
+                    target_date = req_dt.strftime("%Y-%m-%d") if req_dt else datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                    requested_hour: Optional[int] = req_dt.hour if req_dt else None
+                else:
+                    target_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                    requested_hour = None
+
+                for provider_id in booked4us_provider_ids:
+                    calendar_id = _booked4us_calendar_id(provider_id)
+                    try:
+                        free_slots = b4u_get_free_intervals(
+                            BOOKED4US_API_BASE,
+                            calendar_id=calendar_id,
+                            target_date=target_date,
+                            requested_hour=requested_hour,
+                            token=token,
+                        )
+                    except Exception as exc:
+                        logger.warning(
+                            "Booked4Us availability failed for calendar %s: %s",
+                            calendar_id,
+                            exc,
+                        )
+                        free_slots = []
+
+                    if not free_slots:
+                        continue
+
+                    site_url = BOOKED4US_API_BASE.rstrip("/")
+                    if site_url.endswith("/rest-v2"):
+                        site_url = site_url[:-8]
+                    selected_service_ids = by_provider.get(provider_id, [])
+                    service_id = selected_service_ids[0] if selected_service_ids else f"b4u-{calendar_id}"
+
+                    normalized_slots = []
+                    for slot in free_slots:
+                        slot_date = slot.get("date") or target_date
+                        slot_start_time = slot.get("start") or "00:00:00"
+                        slot_end_time = slot.get("end") or slot_start_time
+                        normalized_slots.append(
+                            {
+                                "id": f"{provider_id}:{service_id}",
+                                "service_id": service_id,
+                                "start": f"{slot_date}T{slot_start_time}Z",
+                                "end": f"{slot_date}T{slot_end_time}Z",
+                                "price": {"currency": "HUF", "amount": 0.0},
+                                "booking_url": site_url,
+                            }
+                        )
+
+                    results.append(
+                        {
+                            "provider_id": provider_id,
+                            "provider_name": f"Calendar {calendar_id} (Booked4Us)",
+                            "provider_email": "booked4us@public-calendar",
+                            "lat": None,
+                            "lng": None,
+                            "maps_url": None,
+                            "booking_url": site_url,
+                            "min_price": {"currency": "HUF", "amount": 0.0},
+                            "slots": normalized_slots,
+                        }
+                    )
+
     return {
         "requested_time": requested_time,
         "soonest": soonest,
@@ -1798,7 +1960,7 @@ def get_overpass_pois(min_lat: float, min_lng: float, max_lat: float, max_lng: f
                 "type": "Feature",
                 "geometry": {"type": "Point", "coordinates": [float(node.lon), float(node.lat)]},
                 "properties": {
-                    "id": node.id, "type": t_type, 
+                    "id": node.id, "type": t_type,
                     "name": tags.get("name", ""),
                     "website": tags.get("website") or tags.get("contact:website", ""),
                     "phone": tags.get("phone") or tags.get("contact:phone", "")
