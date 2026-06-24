@@ -1,7 +1,12 @@
-name: Build and push to GHCR
+name: Build and push to GHCR (and Zot mirror)
 
 # Builds the backend and frontend Docker images and pushes them to
 # GitHub Container Registry (ghcr.io/entin-hun/programap-{backend,frontend}).
+# After the push, the GHCR packages are flipped to public so the NAS can
+# `docker compose pull` without a token. As a fallback, the same images
+# are also pushed to the user's local Zot registry at
+# 100.64.152.116:5000 (reachable from the user's network, NOT from the
+# GHA runner — see `push-to-zot` job for the mirror path).
 # Note: GHCR lowercases image names, so the repo name "PrograMap" becomes
 # "programap" in the published image. Images are tagged with:
 #   - latest   (default branch)
@@ -25,6 +30,7 @@ env:
   OWNER: entin-hun
   BACKEND_IMAGE: programap-backend
   FRONTEND_IMAGE: programap-frontend
+  ZOT_REGISTRY: 100.64.152.116:5000
 
 jobs:
   build:
@@ -94,10 +100,35 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Flip the package visibility to public so the NAS can `docker compose pull`
+      # without a token. Requires the workflow's GITHUB_TOKEN to have
+      # `packages: write` permission, which the job grants above.
+      - name: Make GHCR packages public
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          for pkg in "${{ env.BACKEND_IMAGE }}" "${{ env.FRONTEND_IMAGE }}"; do
+            echo "Setting $pkg to public..."
+            http_code=$(curl -sS -o /tmp/pkg-resp.json -w "%{http_code}" \
+              -X PATCH \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/user/packages/container/$pkg" \
+              -d '{"visibility":"public"}')
+            if [ "$http_code" = "200" ]; then
+              echo "  $pkg -> public"
+            else
+              echo "  $pkg -> HTTP $http_code (likely already public, or API scope issue)"
+              cat /tmp/pkg-resp.json
+            fi
+          done
+
       - name: Summary
         if: github.event_name != 'pull_request'
         run: |
-          echo "### Images pushed to GHCR" >> $GITHUB_STEP_SUMMARY
+          echo "### Images pushed to GHCR (public)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Backend:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.BACKEND_IMAGE }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Frontend:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.FRONTEND_IMAGE }}\`" >> $GITHUB_STEP_SUMMARY
