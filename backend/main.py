@@ -2096,6 +2096,107 @@ def get_activities(
         "data": normalized,
     }
 
+CAR_REPAIR_MIN_RATING = float(os.getenv("CAR_REPAIR_MIN_RATING", "4.2"))
+
+
+def _google_places_search_text(payload: dict) -> dict:
+    """POST against the Google Places API (New) text search endpoint."""
+    if not GOOGLE_API_KEY:
+        raise HTTPException(status_code=500, detail="GOOGLE_API_KEY not configured in .env")
+    url = "https://places.googleapis.com/v1/places:searchText"
+    field_mask = (
+        "places.id,places.displayName,places.location,"
+        "places.rating,places.userRatingCount,places.primaryType,places.types,places.formattedAddress"
+    )
+    body = dict(payload)
+    body.setdefault("maxResultCount", 20)
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": GOOGLE_API_KEY,
+            "X-Goog-FieldMask": field_mask,
+            "User-Agent": "trail-planner/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        logger.warning("Google Places API HTTP error: %s", detail)
+        raise HTTPException(status_code=502, detail=f"Google Places API error: {detail}")
+    except Exception as exc:
+        logger.warning("Google Places API request failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Google Places API request failed: {exc}")
+
+
+@app.get("/api/car-repair")
+def get_car_repair(
+    min_lat: float,
+    min_lng: float,
+    max_lat: float,
+    max_lng: float,
+    min_rating: Optional[float] = None,
+):
+    """Search for car repair / auto service places inside the given bounds.
+
+    Only places with rating >= min_rating (defaults to env CAR_REPAIR_MIN_RATING, fallback 4.2) are returned.
+    The response contains: id, name, lat, lng, rating, user_rating_count, types.
+    """
+    if min_rating is None:
+        min_rating = CAR_REPAIR_MIN_RATING
+
+    payload = {
+        "textQuery": "car repair OR auto repair OR car service",
+        "locationRestriction": {
+            "rectangle": {
+                "low": {"latitude": float(min_lat), "longitude": float(min_lng)},
+                "high": {"latitude": float(max_lat), "longitude": float(max_lng)},
+            }
+        },
+        "minRating": float(min_rating),
+    }
+    try:
+        data = _google_places_search_text(payload)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Car repair lookup failed: {exc}")
+
+    results = []
+    for place in data.get("places") or []:
+        loc = place.get("location") or {}
+        lat = _safe_float(loc.get("latitude"))
+        lng = _safe_float(loc.get("longitude"))
+        if lat is None or lng is None:
+            continue
+        rating = _safe_float(place.get("rating"))
+        if rating is None or rating < float(min_rating):
+            continue
+        display_name = place.get("displayName") or {}
+        name = display_name.get("text") if isinstance(display_name, dict) else (display_name or "Car repair")
+        results.append({
+            "id": place.get("id") or place.get("name"),
+            "name": name,
+            "lat": lat,
+            "lng": lng,
+            "rating": rating,
+            "user_rating_count": place.get("userRatingCount"),
+            "types": place.get("types") or [],
+            "primary_type": place.get("primaryType"),
+            "address": place.get("formattedAddress") or "",
+        })
+
+    return {
+        "count": len(results),
+        "data": results,
+        "min_rating": float(min_rating),
+    }
+
+
 def distance(lat1, lon1, lat2, lon2):
     R = 6371e3
     phi1 = math.radians(lat1)

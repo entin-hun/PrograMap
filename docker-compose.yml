@@ -1,5 +1,9 @@
 services:
   backend:
+    # Production image is pulled from GHCR (built by .github/workflows/build-and-push.yml).
+    # For local development, run `docker compose build` and the image will be tagged
+    # with the same name and used in place of a pull.
+    image: ghcr.io/entin-hun/PrograMap-backend:latest
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -20,6 +24,10 @@ services:
     restart: unless-stopped
 
   frontend:
+    # Production image is pulled from GHCR (built by .github/workflows/build-and-push.yml).
+    # For local development, run `docker compose build` and the image will be tagged
+    # with the same name and used in place of a pull.
+    image: ghcr.io/entin-hun/PrograMap-frontend:latest
     build:
       context: .
       dockerfile: frontend/Dockerfile

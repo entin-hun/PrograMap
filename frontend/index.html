@@ -67,6 +67,10 @@
             <strong>⛽ Gas</strong>
             <p><strong>Data source:</strong> HERE Routing API (fuel station POIs with brand names and fuel types; available in selected European countries only).</p>
           </div>
+          <div class="help-item">
+            <strong>🔧 Car Repair</strong>
+            <p><strong>Data source:</strong> Google Places API (text search for "car repair" POIs with rating ≥ 4.2). Optional filters can restrict results to shops with at least N scenic spots within R km (only available when the Scenic layer is on).</p>
+          </div>
         </div>
         <div class="toggle-container">
           <label title="Scenic Spots"><input type="checkbox" id="toggle-scenic" checked> 📸 <span class="toggle-text">Scenic</span><span class="loading-spinner" id="loading-scenic" style="display:none;"> ⏳</span></label>
@@ -79,6 +83,7 @@
           <label title="Activities"><input type="checkbox" id="toggle-activities"> 🎟️ <span class="toggle-text">Activities</span><span class="loading-spinner" id="loading-activities" style="display:none;"> ⏳</span></label>
           <label title="Mushroom Foraging"><input type="checkbox" id="toggle-foraging"> 🍄 <span class="toggle-text">Foraging</span><span class="loading-spinner" id="loading-foraging" style="display:none;"> ⏳</span></label>
           <label title="Gas Stations" id="label-fuel" style="display: none;"><input type="checkbox" id="toggle-fuel"> ⛽ <span class="toggle-text">Gas</span><span class="loading-spinner" id="loading-fuel" style="display:none;"> ⏳</span></label>
+          <label title="Car Repair (4.2+ rating)"><input type="checkbox" id="toggle-car-repair"> 🔧 <span class="toggle-text">Car Repair</span><span class="loading-spinner" id="loading-car-repair" style="display:none;"> ⏳</span></label>
           <label title="Service Booking"><input type="checkbox" id="toggle-services"> 🕒 <span class="toggle-text">Services</span></label>
         </div>
       </div>
@@ -92,7 +97,17 @@
         <button id="clear-service-time" class="provider-btn provider-btn-secondary">Use soonest instead</button>
         <div id="services-status" class="status-text"></div>
       </div>
+car-repair-filters" style="display: none;">
+        <label>Car Repair filters:</label>
+        <label for="car-repair-min-spots">Minimum scenic spots (default 3):</label>
+        <input type="number" id="car-repair-min-spots" min="0" step="1" placeholder="3" />
+        <label for="car-repair-radius">Scenic spot radius (km, default 30):</label>
+        <input type="number" id="car-repair-radius" min="1" step="1" placeholder="30" />
+        <div id="car-repair-status" class="status-text"></div>
+      </div>
 
+
+      <div class="control-group" id="
       <div class="control-group" id="activities-filters" style="display: none;">
         <label>Activities filters:</label>
         <label>Price max:</label>

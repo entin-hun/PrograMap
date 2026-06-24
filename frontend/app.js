@@ -8,6 +8,11 @@ let mentionedPOINames = [];
 let currentPlace = null;
 let routePolylines = {};
 let fuelMarkers = [];
+let carRepairMarkers = [];
+let allCarRepairPlaces = [];
+let carRepairFetchTimer = null;
+let carRepairBoundsKey = null;
+let carRepairFiltersDirty = false;
 let activityMarkers = [];
 let activityConnectorLines = [];
 let activityAnchorMarkers = [];
@@ -58,7 +63,7 @@ const BACKEND_URL = `http://${window.location.hostname}:8269`;
 async function initMap() {
     const { Map } = await google.maps.importLibrary("maps");
     const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
-    const { Autocomplete } = await google.maps.importLibrary("places");
+    const { PlaceAutocompleteElement } = await google.maps.importLibrary("places");
     AdvancedMarkerCtor = AdvancedMarkerElement;
     
     map = new Map(document.getElementById("map"), {
@@ -177,43 +182,52 @@ async function initMap() {
         fallbackIPLocation();
     }
     
-    // Setup Search Bar Autocomplete using the classic API
-    const input = document.getElementById("city-search");
-    const autocomplete = new Autocomplete(input, {
-        fields: ["geometry", "name", "place_id"]
-    });
-    
-    autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        if (place.geometry && place.geometry.location) {
-            if (place.geometry.viewport) {
-                map.fitBounds(place.geometry.viewport);
-            } else {
-                map.setCenter(place.geometry.location);
+    // Setup Search Bar using the new PlaceAutocompleteElement (replaces deprecated Autocomplete)
+    // Migrated from google.maps.places.Autocomplete -> google.maps.places.PlaceAutocompleteElement
+    const citySearchInput = document.getElementById("city-search");
+    if (citySearchInput) {
+        const inputContainer = citySearchInput.parentElement;
+        citySearchInput.remove();
+        const placeAutocomplete = new PlaceAutocompleteElement({
+            placeholder: "Search a city or place...",
+        });
+        placeAutocomplete.id = "city-search";
+        placeAutocomplete.style.width = "100%";
+        if (inputContainer) {
+            inputContainer.appendChild(placeAutocomplete);
+        }
+
+        // Bias predictions to the visible map bounds
+        const updateLocationRestriction = () => {
+            if (map && placeAutocomplete) {
+                const bounds = map.getBounds();
+                if (bounds) placeAutocomplete.locationRestriction = bounds;
+            }
+        };
+        // Initial restriction + update on pan/zoom
+        updateLocationRestriction();
+        map.addListener('bounds_changed', updateLocationRestriction);
+
+        // New API uses the `gmp-select` event and `placePrediction.toPlace()`.
+        // We fetch the location/viewport fields explicitly because the widget no
+        // longer returns them eagerly like the classic Autocomplete.getPlace() did.
+        placeAutocomplete.addEventListener("gmp-select", async (event) => {
+            const placePrediction = event.placePrediction;
+            if (!placePrediction) return;
+            const place = placePrediction.toPlace();
+            try {
+                await place.fetchFields({ fields: ['location', 'viewport'] });
+            } catch (e) {
+                console.warn('PlaceAutocompleteElement: fetchFields failed', e);
+            }
+            if (place.viewport) {
+                map.fitBounds(place.viewport);
+            } else if (place.location) {
+                map.setCenter(place.location);
                 map.setZoom(13);
             }
-        }
-    });
-
-    // Fix for Google Maps Autocomplete suggestion tap issue on mobile
-    let isPacScrolling = false;
-    document.addEventListener('touchstart', () => { isPacScrolling = false; }, { passive: true });
-    document.addEventListener('touchmove', () => { isPacScrolling = true; }, { passive: true });
-    
-    document.addEventListener('touchend', (e) => {
-        if (!isPacScrolling) {
-            const pacItem = e.target && e.target.closest ? e.target.closest('.pac-item') : null;
-            if (pacItem) {
-                // Manually trigger the event sequence Google Maps expects
-                const mouseDownEvent = new MouseEvent('mousedown', {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window
-                });
-                pacItem.dispatchEvent(mouseDownEvent);
-            }
-        }
-    }, { passive: true });
+        });
+    }
 
     // Add marked trails overlay from Waymarked Trails (Hiking)
     window.trailsLayer = new google.maps.ImageMapType({
@@ -303,6 +317,7 @@ async function initMap() {
         searchFuelStations(AdvancedMarkerElement);
         searchOverpassPOIs(AdvancedMarkerElement);
         searchDrinkingWater(AdvancedMarkerElement);
+        scheduleCarRepairRefresh(AdvancedMarkerElement);
         scheduleActivityRefresh(AdvancedMarkerElement);
         updateForagingLayer();
         updateFuelAvailability();
@@ -336,6 +351,12 @@ function bindToggles(AdvancedMarkerElement) {
             }
         });
         if (show) searchPOIs(AdvancedMarkerElement);
+        // Car repair filter depends on the set of currently visible scenic spots.
+        // Re-apply the filter so the count badge and visibility stay in sync.
+        const carRepairToggle = document.getElementById('toggle-car-repair');
+        if (carRepairToggle && carRepairToggle.checked && allCarRepairPlaces.length > 0) {
+            applyCarRepairFilters(AdvancedMarkerElement);
+        }
     });
 
     document.getElementById('toggle-fuel').addEventListener('change', (e) => {
@@ -410,6 +431,41 @@ function bindToggles(AdvancedMarkerElement) {
         });
         if (showWater) { searchOverpassPOIs(AdvancedMarkerElement); searchDrinkingWater(AdvancedMarkerElement); }
         updateRoutePolylines();
+    });
+
+    document.getElementById('toggle-car-repair').addEventListener('change', (e) => {
+        const showCarRepair = e.target.checked;
+        const filtersPanel = document.getElementById('car-repair-filters');
+        if (filtersPanel) filtersPanel.style.display = showCarRepair ? 'block' : 'none';
+        if (showCarRepair) {
+            searchCarRepair(AdvancedMarkerElement);
+        } else {
+            clearCarRepairMarkers();
+            allCarRepairPlaces = [];
+            if (carRepairFetchTimer) clearTimeout(carRepairFetchTimer);
+            carRepairFetchTimer = null;
+            carRepairBoundsKey = null;
+            setTextStatus('car-repair-status', '');
+        }
+    });
+
+    const carRepairFilterIds = ['car-repair-min-spots', 'car-repair-radius'];
+    const onCarRepairFilterChange = () => {
+        // Filters changed. Re-apply to existing data; if no data yet, fetch fresh.
+        const toggle = document.getElementById('toggle-car-repair');
+        if (!toggle || !toggle.checked) return;
+        if (allCarRepairPlaces.length > 0) {
+            applyCarRepairFilters(AdvancedMarkerElement);
+        } else {
+            carRepairFiltersDirty = true;
+            searchCarRepair(AdvancedMarkerElement);
+        }
+    };
+    carRepairFilterIds.forEach((id) => {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.addEventListener('input', onCarRepairFilterChange);
+        input.addEventListener('change', onCarRepairFilterChange);
     });
 
     document.getElementById('toggle-activities').addEventListener('change', (e) => {
@@ -764,6 +820,12 @@ async function searchPOIs(AdvancedMarkerElement) {
     } finally {
         const spinner = document.getElementById('loading-scenic');
         if (spinner) spinner.style.display = 'none';
+        // Scenic spots just got updated — re-apply the car repair filter so
+        // the count badge and visibility stay in sync with the new data.
+        const carRepairToggle = document.getElementById('toggle-car-repair');
+        if (carRepairToggle && carRepairToggle.checked && allCarRepairPlaces.length > 0) {
+            applyCarRepairFilters(AdvancedMarkerElement);
+        }
     }
 }
 
@@ -1303,6 +1365,240 @@ async function searchDrinkingWater(AdvancedMarkerElement) {
         if (spinner) spinner.style.display = 'none';
     }
 }
+
+
+function carRepairBoundsKeyValue(bounds) {
+    if (!bounds) return '';
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    return [
+        ne.lat().toFixed(4),
+        ne.lng().toFixed(4),
+        sw.lat().toFixed(4),
+        sw.lng().toFixed(4),
+    ].join(',');
+}
+
+
+function scheduleCarRepairRefresh(AdvancedMarkerElement) {
+    const toggle = document.getElementById('toggle-car-repair');
+    if (!toggle || !toggle.checked) return;
+    if (!map) return;
+    const bounds = map.getBounds();
+    if (!bounds) return;
+    const key = carRepairBoundsKeyValue(bounds);
+    if (key && key === carRepairBoundsKey) return;
+    if (carRepairFetchTimer) clearTimeout(carRepairFetchTimer);
+    carRepairFetchTimer = setTimeout(() => {
+        searchCarRepair(AdvancedMarkerElement);
+    }, 350);
+}
+
+
+function getCarRepairFilterValues() {
+    const minRaw = document.getElementById('car-repair-min-spots')?.value;
+    const radRaw = document.getElementById('car-repair-radius')?.value;
+    // Treat empty string as "use default" so the user can clear inputs to fall back to defaults.
+    const minSpots = (minRaw === '' || minRaw === null || minRaw === undefined)
+        ? 3
+        : Math.max(0, Math.floor(Number(minRaw) || 0));
+    const radiusKm = (radRaw === '' || radRaw === null || radRaw === undefined)
+        ? 30
+        : Math.max(1, Number(radRaw) || 30);
+    return { minSpots, radiusKm };
+}
+
+
+function getVisibleScenicSpots() {
+    // Use the scenic spots that are currently in the global `markers` array.
+    // These are visible when the scenic layer is on.
+    const scenicToggle = document.getElementById('toggle-scenic');
+    const scenicOn = scenicToggle ? scenicToggle.checked : false;
+    if (!scenicOn) return { visible: false, spots: [] };
+
+    const spots = [];
+    markers.forEach((m) => {
+        if (!m || !m.position) return;
+        const pos = typeof m.position === 'function' ? m.position() : m.position;
+        if (!pos) return;
+        const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat;
+        const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng;
+        if (typeof lat === 'number' && typeof lng === 'number') {
+            spots.push({ lat, lng, place_id: m.place_id || null });
+        }
+    });
+    return { visible: true, spots };
+}
+
+
+function countScenicSpotsNearby(repairLat, repairLng, spots, radiusKm) {
+    if (!spots || spots.length === 0) return 0;
+    let count = 0;
+    for (let i = 0; i < spots.length; i++) {
+        const s = spots[i];
+        if (getDistanceKm(repairLat, repairLng, s.lat, s.lng) <= radiusKm) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+
+async function searchCarRepair(AdvancedMarkerElement) {
+    const toggle = document.getElementById('toggle-car-repair');
+    if (!toggle || !toggle.checked) return;
+    if (!map) return;
+    const bounds = map.getBounds();
+    if (!bounds) return;
+
+    const currentKey = carRepairBoundsKeyValue(bounds);
+    const spinner = document.getElementById('loading-car-repair');
+    if (spinner) spinner.style.display = 'inline';
+
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    const url = `${BACKEND_URL}/api/car-repair?min_lat=${sw.lat()}&min_lng=${sw.lng()}&max_lat=${ne.lat()}&max_lng=${ne.lng()}`;
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            setTextStatus('car-repair-status', `Car repair lookup failed (HTTP ${res.status})`, true);
+            return;
+        }
+        const payload = await res.json();
+        allCarRepairPlaces = Array.isArray(payload.data) ? payload.data : [];
+        carRepairBoundsKey = currentKey;
+        applyCarRepairFilters(AdvancedMarkerElement);
+    } catch (e) {
+        console.error('Car repair search error:', e);
+        setTextStatus('car-repair-status', e.message || 'Car repair search failed', true);
+    } finally {
+        if (spinner) spinner.style.display = 'none';
+        carRepairFiltersDirty = false;
+    }
+}
+
+
+function applyCarRepairFilters(AdvancedMarkerElement) {
+    const toggle = document.getElementById('toggle-car-repair');
+    if (!toggle || !toggle.checked) return;
+
+    const { minSpots, radiusKm } = getCarRepairFilterValues();
+    const scenicState = getVisibleScenicSpots();
+    const scenicEnabled = scenicState.visible;
+    const scenicSpots = scenicState.spots;
+
+    const visiblePlaces = [];
+    const totalCount = allCarRepairPlaces.length;
+    let hiddenByFilter = 0;
+    allCarRepairPlaces.forEach((place) => {
+        let count = 0;
+        if (scenicEnabled) {
+            count = countScenicSpotsNearby(place.lat, place.lng, scenicSpots, radiusKm);
+        }
+        // When scenic layer is OFF we have no spots to count, so fall back to "0" which
+        // would otherwise hide the place. Treat the filter as disabled in that case.
+        if (!scenicEnabled) {
+            visiblePlaces.push({ place, scenicCount: 0 });
+        } else if (count >= minSpots) {
+            visiblePlaces.push({ place, scenicCount: count });
+        } else {
+            hiddenByFilter += 1;
+        }
+    });
+
+    clearCarRepairMarkers();
+    visiblePlaces.forEach(({ place, scenicCount }) => {
+        const marker = createCarRepairMarker(place, scenicCount, scenicEnabled, AdvancedMarkerElement);
+        if (marker) carRepairMarkers.push(marker);
+    });
+
+    let statusText;
+    if (!scenicEnabled) {
+        statusText = `Showing ${visiblePlaces.length} of ${totalCount} car repair shops (scenic layer is OFF — turn it on to apply spot filter).`;
+    } else if (visiblePlaces.length === totalCount) {
+        statusText = `Showing all ${totalCount} car repair shops (≥ 4.2★) with at least ${minSpots} scenic spot${minSpots === 1 ? '' : 's'} within ${radiusKm} km.`;
+    } else {
+        statusText = `Showing ${visiblePlaces.length} of ${totalCount} car repair shops (≥ 4.2★) with at least ${minSpots} scenic spot${minSpots === 1 ? '' : 's'} within ${radiusKm} km.`;
+    }
+    setTextStatus('car-repair-status', statusText);
+}
+
+
+function createCarRepairMarker(place, scenicCount, scenicEnabled, AdvancedMarkerElement) {
+    if (!place || typeof place.lat !== 'number' || typeof place.lng !== 'number') return null;
+    const title = place.name || 'Car repair';
+    const rating = typeof place.rating === 'number' ? place.rating.toFixed(1) : '–';
+    const userRatings = place.user_rating_count ? ` (${place.user_rating_count})` : '';
+    const scenicBadge = scenicEnabled && scenicCount > 0
+        ? ` <span style="background:#28a745;color:#fff;border-radius:8px;padding:1px 4px;font-size:10px;margin-left:2px;">${scenicCount}★</span>`
+        : '';
+    const icon = `<span style="font-size:18px;line-height:1;">🔧</span>`;
+    const ratingLabel = `<span style="font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,0.45);border-radius:6px;padding:1px 4px;margin-left:3px;">★${rating}${userRatings}</span>`;
+
+    const markerDiv = document.createElement('div');
+    markerDiv.className = 'custom-marker extra-poi car-repair-poi';
+    markerDiv.style.backgroundColor = '#d97706';
+    markerDiv.style.borderColor = '#92400e';
+    markerDiv.style.color = '#fff';
+    markerDiv.style.padding = '2px 4px';
+    markerDiv.style.minWidth = 'unset';
+    markerDiv.style.minHeight = 'unset';
+    markerDiv.style.width = 'auto';
+    markerDiv.style.height = 'auto';
+    markerDiv.style.display = 'flex';
+    markerDiv.style.alignItems = 'center';
+    markerDiv.style.justifyContent = 'center';
+    markerDiv.style.gap = '2px';
+    markerDiv.innerHTML = `${icon}${ratingLabel}${scenicBadge}`;
+    markerDiv.title = `${title} — ★${rating}${userRatings}${scenicEnabled && scenicCount > 0 ? ` • ${scenicCount} scenic spot${scenicCount === 1 ? '' : 's'} within filter radius` : ''}`;
+
+    const marker = new AdvancedMarkerElement({
+        map,
+        position: { lat: place.lat, lng: place.lng },
+        title: markerDiv.title,
+        content: markerDiv,
+    });
+    marker.poiType = 'car_repair';
+    marker.poiId = place.id;
+
+    marker.addListener('gmp-click', () => {
+        if (!sharedInfoWindow) sharedInfoWindow = new google.maps.InfoWindow();
+        const types = Array.isArray(place.types) && place.types.length
+            ? place.types.filter((t) => t !== 'point_of_interest' && t !== 'establishment').slice(0, 4).join(', ')
+            : 'car_repair';
+        const scenicLine = scenicEnabled
+            ? `<div style="font-size:12px;color:#333;margin-top:4px;">📸 ${scenicCount} scenic spot${scenicCount === 1 ? '' : 's'} within ${getCarRepairFilterValues().radiusKm} km</div>`
+            : `<div style="font-size:12px;color:#666;margin-top:4px;">ℹ️ Turn on the Scenic layer to see nearby scenic spots.</div>`;
+        const addressLine = place.address
+            ? `<div style="font-size:12px;color:#555;margin-top:4px;">${place.address}</div>`
+            : '';
+        const content = `
+            <div style="color:#222;padding:6px;max-width:240px;">
+                <strong>${title}</strong>
+                <div style="font-size:12px;color:#444;margin-top:3px;">⭐ ${rating}${userRatings} <span style="color:#888;">•</span> ${types}</div>
+                ${addressLine}
+                ${scenicLine}
+                <div style="margin-top:8px;text-align:center;">
+                    <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}', '_blank')"
+                        style="padding:5px 10px;background:#007bff;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;width:100%;">
+                        Open in Google Maps
+                    </button>
+                </div>
+            </div>`;
+        sharedInfoWindow.setContent(content);
+        sharedInfoWindow.open({ map, anchor: marker });
+    });
+
+    return marker;
+}
+
+
+function clearCarRepairMarkers() {
+    carRepairMarkers.forEach((m) => { m.map = null; });
+    carRepairMarkers = [];
+}
+
 
 async function searchFuelStations(AdvancedMarkerElement) {
     // Check if toggle is checked FIRST before making any requests
