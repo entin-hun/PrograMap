@@ -24,10 +24,17 @@ TAG="${TAG:-latest}"
 GHCR_BASE="${GHCR_BASE:-ghcr.io/entin-hun}"
 ZOT_BASE="${ZOT_BASE:-100.64.152.116:5000}"
 REMOTE_BACKEND_ATTACH_DIR="${REMOTE_BACKEND_ATTACH_DIR:-/volume1/home/balint/trail-planner/backend}"
+STACK_DIR="${STACK_DIR:-/Users/mac-pro/dev_projects/trail-planner}"
 
 export DOCKER_CONTEXT="$DOCKER_CONTEXT_NAME"
 export REMOTE_BACKEND_ATTACH_DIR
 export BACKEND_IMAGE FRONTEND_IMAGE TAG GHCR_BASE ZOT_BASE
+
+# Use `docker-compose` (v1) because the local box doesn't have the v2 plugin
+# installed. The legacy v1 binary works fine with --context and honours the
+# same compose-file schema. The v2 plugin (`docker compose`) can be swapped
+# in later if it's installed.
+COMPOSE=(docker-compose --context "$DOCKER_CONTEXT_NAME" -f "$STACK_DIR/docker-compose.yml")
 
 echo "=== Deploying to docker context: $DOCKER_CONTEXT_NAME ==="
 docker --context "$DOCKER_CONTEXT_NAME" version --format '{{.Server.Version}}' \
@@ -56,8 +63,8 @@ fi
 
 # Recreate the services so they pick up the freshly-pulled images.
 # `up -d` will only recreate containers whose image changed, so this is safe.
-echo ">>> docker compose up -d"
-docker --context "$DOCKER_CONTEXT_NAME" compose up -d
+echo ">>> ${COMPOSE[*]} up -d"
+"${COMPOSE[@]}" up -d
 
 # Health check: poll the backend /api/config on the host port mapped to 8223.
 echo ">>> Health check (backend /api/config on :8269)..."
