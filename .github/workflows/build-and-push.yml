@@ -100,42 +100,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Flip the package visibility to public so the NAS can `docker compose pull`
-      # without a token. Tries the user-level endpoint first, then the
-      # /users/<owner>/ variant (the latter is sometimes needed when the
-      # GITHUB_TOKEN's user-identity is in a different scope).
-      - name: Make GHCR packages public
+      # The workflow's GITHUB_TOKEN cannot change user-package visibility
+      # (known GHA limitation — admin operations on user packages require
+      # a user PAT). The repo owner must flip each package to public once
+      # at:
+      #   https://github.com/users/${{ env.OWNER }}/packages/container/${{ env.BACKEND_IMAGE }}/settings
+      #   https://github.com/users/${{ env.OWNER }}/packages/container/${{ env.FRONTEND_IMAGE }}/settings
+      # After that, the NAS can `docker pull` without auth.
+      - name: GHCR visibility reminder
         if: github.event_name != 'pull_request'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ env.OWNER }}
+          BACKEND_IMAGE: ${{ env.BACKEND_IMAGE }}
+          FRONTEND_IMAGE: ${{ env.FRONTEND_IMAGE }}
         run: |
-          set +e
-          for pkg in "${{ env.BACKEND_IMAGE }}" "${{ env.FRONTEND_IMAGE }}"; do
-            echo "Setting $pkg to public..."
-            ok=0
-            for url in \
-              "https://api.github.com/user/packages/container/$pkg" \
-              "https://api.github.com/users/$OWNER/packages/container/$pkg"; do
-              http_code=$(curl -sS -o /tmp/pkg-resp.json -w "%{http_code}" \
-                -X PATCH \
-                -H "Authorization: Bearer $GH_TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                "$url" \
-                -d '{"visibility":"public"}')
-              echo "  PATCH $url -> HTTP $http_code"
-              if [ "$http_code" = "200" ]; then
-                ok=1
-                break
-              fi
-            done
-            if [ "$ok" = "0" ]; then
-              echo "  !! $pkg could not be set to public via API."
-              echo "     Falling back: please set it manually at"
-              echo "     https://github.com/users/$OWNER/packages/container/$pkg/settings"
-              cat /tmp/pkg-resp.json
-            fi
-          done
+          echo "### GHCR packages" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Make sure these are set to **Public** (one-time per package):" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- https://github.com/users/$OWNER/packages/container/$BACKEND_IMAGE/settings" >> $GITHUB_STEP_SUMMARY
+          echo "- https://github.com/users/$OWNER/packages/container/$FRONTEND_IMAGE/settings" >> $GITHUB_STEP_SUMMARY
 
       - name: Summary
         if: github.event_name != 'pull_request'
