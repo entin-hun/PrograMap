@@ -1,8 +1,9 @@
 name: Build and push to GHCR
 
 # Builds the backend and frontend Docker images and pushes them to
-# GitHub Container Registry (ghcr.io/entin-hun/PrograMap-{backend,frontend}).
-# Images are tagged with:
+# GitHub Container Registry (ghcr.io/entin-hun/programap-{backend,frontend}).
+# Note: GHCR lowercases image names, so the repo name "PrograMap" becomes
+# "programap" in the published image. Images are tagged with:
 #   - latest   (default branch)
 #   - <branch> (other branches)
 #   - <sha>    (short commit SHA, useful for pinned deploys)
@@ -22,8 +23,8 @@ on:
 env:
   REGISTRY: ghcr.io
   OWNER: entin-hun
-  BACKEND_IMAGE: PrograMap-backend
-  FRONTEND_IMAGE: PrograMap-frontend
+  BACKEND_IMAGE: programap-backend
+  FRONTEND_IMAGE: programap-frontend
 
 jobs:
   build:
